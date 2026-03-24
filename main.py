@@ -1,123 +1,37 @@
-import pygame, sys
-from os import path
+import pygame
+import sys
 
-# Set up assets
-imgDir = path.join(path.dirname(__file__), 'assets/img')
+from src.ui.screenManager import ScreenManager
+from src.ui.assetManager import AssetManager
+from src.ui.musicPlayer import MusicPlayerScreen
 
-# Define Colors
-BACKGROUND = (112, 62, 69)
-UILIGHT = (231, 181, 189)
-UIDARK = (157, 119, 132)
-WHITE = (255, 255, 255)
+def main():
+    pygame.init()
+    pygame.mixer.init()
 
-# Draw Text Code
-fontName = pygame.font.match_font(path.join(path.dirname(__file__), 'assets/Sansation.tff'))
-def drawText(surf, text, size, x, y, color=WHITE, pos="left"):
-    font = pygame.font.Font(fontName, int(size))
-    textSurface = font.render(text, True, color)
-    textRect = textSurface.get_rect()
-    match pos:
-        case "left":
-            textRect.topleft = (x, y)
-        case "right":
-            textRect.topright = (x, y)
-    surf.blit(textSurface, textRect)
+    clock = pygame.time.Clock()
 
-# Function which creates a slider
-def makeSlider(xSize, ySize, color=UIDARK):
-    slider = pygame.Surface((xSize, ySize), pygame.SRCALPHA)
-    pygame.draw.rect(slider, color, (0, 0, xSize, ySize), border_radius=20)
-    return slider
-
-# This function resizes the window
-def resize(size = 6):
-    global UISIZE, WIDTH, HEIGHT, FPS
-    global musicImg, timeBackground, soundBackground, muteImg, volumeImg
-    global screen
-
-    UISIZE = size
-    WIDTH = int(75 * UISIZE)
-    HEIGHT = int(1.5 * 75 * UISIZE)
-    FPS = 60
-
-    # Setup screen
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-
-    # Rescale images
-
-    # Music background
-    noteSize = WIDTH * 0.75
-    noteImg = pygame.image.load(path.join(imgDir, "play.png"))
-    noteImg = pygame.transform.scale(noteImg, (noteSize / 2, noteSize / 2))
-    musicImg = pygame.Surface((noteSize, noteSize), pygame.SRCALPHA)
-    pygame.draw.rect(musicImg, UIDARK, (0, 0, noteSize, noteSize), border_radius=20)
-    musicImg.blit(noteImg, (noteSize / 4, noteSize / 4))
-
-    # Slider Background
-    timeBackground = makeSlider(noteSize, UISIZE * 4, UIDARK)
-    soundBackground = makeSlider(noteSize * 0.8, UISIZE * 4, UIDARK)
-
-    # Mute Icon
-    muteImg = pygame.image.load(path.join(imgDir, "mute.png"))
-    muteImg = pygame.transform.scale(muteImg, (UISIZE * 4, UISIZE * 4))
-
-    # Volume Icon
-    volumeImg = pygame.image.load(path.join(imgDir, "mute.png"))
-    volumeImg = pygame.transform.scale(volumeImg, (UISIZE * 4, UISIZE * 4))
-
-# This function draws the UI to the screen
-def drawUI():
-    x = WIDTH / 2 - musicImg.get_width() / 2
-    y = WIDTH / 2 + musicImg.get_width() / 2 + UISIZE * 6
-
-    screen.fill(BACKGROUND)
-
-    screen.blit(musicImg, (x, x))
-
-    drawText(screen, "Song 2", UISIZE * 8, x, y)
-
-    y += UISIZE * 8
-    drawText(screen, "A cool guy", UISIZE * 7, x, y, UILIGHT)
-
-    y += UISIZE * 9
-    screen.blit(timeBackground, (x, y))
-
-    y += UISIZE * 7
-    drawText(screen, "Time 1", UISIZE * 4, x, y, UILIGHT)
-    drawText(screen, "Time 2", UISIZE * 4, x + musicImg.get_width(), y, UILIGHT, "right")
-
-    y += UISIZE * 7
-    screen.blit(soundBackground, (WIDTH / 2 - soundBackground.get_width() / 2, y))
-    screen.blit(muteImg, (x, y))
-    screen.blit(volumeImg, (x + musicImg.get_width() - volumeImg.get_width(), y))
-
-    pygame.display.flip()
+    sm = ScreenManager(6) 
+    am = AssetManager()
     
-#Create Window
-pygame.init()
-pygame.mixer.init()
-pygame.display.set_caption("Music Player")
-clock = pygame.time.Clock()
+    # Initialize the screen and set it in the manager
+    musicScreen = MusicPlayerScreen(am, sm)
+    sm.setScreen(musicScreen)
 
-# Set the size of the window
-resize(6)
+    while True:
+        clock.tick(sm.fps)
 
-#Game Loop
-while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-    #Keep looping at the right speed
-    clock.tick(FPS)
+            if event.type == pygame.VIDEORESIZE:
+                sm.resize(event.w / 75)
 
-    #Process input
-    for event in pygame.event.get():
+            sm.handleEvent(event)
 
-        # Close window
-        if event.type == pygame.QUIT:
-            sys.exit()
+        sm.draw()
 
-        # Resize window
-        if event.type == pygame.VIDEORESIZE:
-            resize(event.w / 75)
-
-    #Draw To Screen
-    drawUI()
+if __name__ == "__main__":
+    main()
