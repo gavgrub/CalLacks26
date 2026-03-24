@@ -28,5 +28,6 @@ class ScreenManager:
             self.currentScreen.draw()
         pygame.display.flip()
 
-    def handleEvent(self, event):
-        pass
+    def handleEvents(self, event):
+        if self.currentScreen is not None:
+            self.currentScreen.handleEvents(event)

@@ -37,20 +37,29 @@ def main():
     # Setup the music manager
     music = SongHandler(os.path.abspath(songPath), musicScreen)
 
+    # Setup buttons on the ui
+    musicScreen.setCommand("albumArt", music.toggle)
+    musicScreen.setCommand("timeBar", music.setTime)
+    musicScreen.setCommand("soundBar", music.setVolume)
+
     while True:
         clock.tick(sm.fps)
 
+        # Handle Events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             if event.type == pygame.VIDEORESIZE:
                 sm.resize(event.w / 75)
 
-            sm.handleEvent(event)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    music.toggle()
 
-        # Update music
+            sm.handleEvents(event)
+
+        # Update screen
         music.update()
 
         # Draw to screen

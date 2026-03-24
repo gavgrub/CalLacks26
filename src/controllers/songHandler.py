@@ -18,6 +18,7 @@ class SongHandler:
             self.title = self.name
 
         # Scalar information related to the song
+        self.currentStartTime = 0.0  # Added initialization
         self.duration = self.getDuration()
 
         # Store the time components on the UI
@@ -26,6 +27,11 @@ class SongHandler:
         # Play the song
         self.restart()
 
+    # Sets volume in range 0-1
+    def setVolume(self, volume):
+        self.volume = max(0.0, min(1.0, volume))
+        pygame.mixer.music.set_volume(self.volume)
+
     # Get duration of song
     def getDuration(self):
         tempSound = pygame.mixer.Sound(self.path)
@@ -33,7 +39,8 @@ class SongHandler:
     
     # Get number of seconds
     def getSeconds(self):
-        return pygame.mixer.music.get_pos() / 1000.0
+        # Added the start time offset to the internal mixer position
+        return self.currentStartTime + (pygame.mixer.music.get_pos() / 1000.0)
     
     # Get number of seconds left
     def getRemainingSeconds(self):
@@ -54,19 +61,44 @@ class SongHandler:
 
     # Restart the song
     def restart(self):
+        self.currentStartTime = 0.0  # Reset offset
         pygame.mixer.music.load(str(self.path))
         pygame.mixer.music.play(loops=0, start=0.0)
+
+    def getVolume(self):
+        return pygame.mixer.music.get_volume()
+
+    # Toggles the music paused / unpaused
+    def toggle(self, *args): # Added *args so UI calls don't crash
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.pause()
+        else:
+            pygame.mixer.music.unpause()
+
+    # Sets time in range 0-1
+    def setTime(self, progress):
+        progress = max(0.0, min(1.0, progress))
+        self.currentStartTime = self.duration * progress
+        
+        pygame.mixer.music.play(loops=0, start=self.currentStartTime)
+
+        if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.pause()
+
+        self.update()
 
     # Update components related to the song
     def update(self):
         title = self.musicScreen.title
         artist = self.musicScreen.artist
         timeBar = self.musicScreen.timeBar
+        soundBar = self.musicScreen.soundBar
         timeLeft = self.musicScreen.timeLeft
         timeRight = self.musicScreen.timeRight
 
         title.setText(self.title)
         artist.setText(self.artist)
         timeBar.setProgress(self.getPercentage())
+        soundBar.setProgress(self.getVolume())
         timeLeft.setText(self.formatTime(self.getSeconds()))
         timeRight.setText(f"-{self.formatTime(self.getRemainingSeconds())}")

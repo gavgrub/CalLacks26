@@ -1,10 +1,20 @@
 import pygame
+import os
 
 # Base element
 class Element:
-    def __init__(self, x, y):
+    def __init__(self, x, y, action=None):
         self.x = x
         self.y = y
+        self.action = action
+        self.rect = pygame.Rect(x, y, 0, 0)
+
+    def execute(self, *args):
+        if self.action is not None:
+            self.action(*args)
+
+    def isClicked(self, mousePos):
+        return self.rect.collidepoint(mousePos)
 
     def draw(self, screen):
         pass
@@ -14,77 +24,161 @@ class Element:
 
 # Text element
 class Text(Element):
-    def __init__(self, text, size, color, align="left"):
-        super().__init__(0, 0)
+    def __init__(self, text, size, color, align="left", action=None):
+        super().__init__(0, 0, action)
         self.text = text
         self.size = size
         self.color = color
         self.align = align
+        self.uiRef = None
+        self.surface = None
 
     def build(self, ui):
+        self.uiRef = ui
         font = ui.getFont(self.size)
         self.surface = font.render(self.text, True, self.color)
         self.rect = self.surface.get_rect()
-        self.uiRef = ui
 
     def draw(self, screen):
-        rect = self.rect.copy()
-
+        if self.surface is None:
+            return
+            
         if self.align == "left":
-            rect.topleft = (self.x, self.y)
+            self.rect.topleft = (self.x, self.y)
         elif self.align == "right":
-            rect.topright = (self.x, self.y)
-
-        screen.blit(self.surface, rect)
+            self.rect.topright = (self.x, self.y)
+            
+        screen.blit(self.surface, self.rect)
 
     def setText(self, newText):
         if self.text != newText:
             self.text = newText
-            self.build(self.uiRef)
+            if self.uiRef:
+                self.build(self.uiRef)
 
 # Image element
 class Image(Element):
-    def __init__(self, img):
-        super().__init__(0, 0)
+    def __init__(self, img, action=None):
+        super().__init__(0, 0, action)
         self.raw = img
+        self.surface = None
 
     def build(self, size):
         self.surface = pygame.transform.scale(self.raw, size)
+        self.rect = self.surface.get_rect()
 
     def draw(self, screen):
-        screen.blit(self.surface, (self.x, self.y))
+        if self.surface:
+            self.rect.topleft = (self.x, self.y)
+            screen.blit(self.surface, self.rect)
 
 # Slider element
 class Slider(Element):
-    def __init__(self, width, height, background, fill):
-        super().__init__(0, 0)
+    def __init__(self, width, height, background, fill, action=None):
+        super().__init__(0, 0, action)
         self.width = width
         self.height = height
-        self.bg_color = background
-        self.fill_color = fill
+        self.bgColor = background
+        self.fillColor = fill
         self.progress = 0.0
-        self.bg_surface = None
-        self.fill_surface = None
+        self.bgSurface = None
+        self.fillSurface = None
+        self.rect = pygame.Rect(0, 0, width, height)
 
     def build(self):
-        self.bg_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        pygame.draw.rect(self.bg_surface, self.bg_color, (0, 0, self.width, self.height), border_radius=int(self.height / 2))
+        self.bgSurface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.rect(self.bgSurface, self.bgColor, (0, 0, self.width, self.height), border_radius=int(self.height / 2))
         
-        self.fill_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        pygame.draw.rect(self.fill_surface, self.fill_color, (0, 0, self.width, self.height), border_radius=int(self.height / 2))
+        self.fillSurface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.rect(self.fillSurface, self.fillColor, (0, 0, self.width, self.height), border_radius=int(self.height / 2))
+        self.rect.size = (self.width, self.height)
 
-    def resize(self, new_width, new_height):
-        self.width = new_width
-        self.height = new_height
+    def resize(self, newWidth, newHeight):
+        self.width = newWidth
+        self.height = newHeight
         self.build()
 
     def setProgress(self, value):
         self.progress = max(0.0, min(1.0, value))
 
+    def handleClick(self, mousePos):
+        if self.isClicked(mousePos):
+            relativeX = mousePos[0] - self.x
+            newProgress = relativeX / self.width
+            self.setProgress(newProgress)
+            self.execute(newProgress)
+            return True
+        return False
+
     def draw(self, screen):
-        if self.bg_surface:
-            screen.blit(self.bg_surface, (self.x, self.y))
+        if self.bgSurface is None:
+            self.build()
+            
+        self.rect.topleft = (self.x, self.y)
+        screen.blit(self.bgSurface, self.rect)
         
-        if self.fill_surface and self.progress > 0:
+        if self.fillSurface and self.progress > 0:
             fillWidth = int(self.width * self.progress)
-            screen.blit(self.fill_surface, (self.x, self.y), (0, 0, fillWidth, self.height))
+            screen.blit(self.fillSurface, (self.x, self.y), (0, 0, fillWidth, self.height))
+
+# Handles playing music
+class SongHandler:
+    def __init__(self, path, timeBar, timeLeft, timeRight):
+        self.path = path
+        self.filename = os.path.basename(path)
+        self.name, _ = os.path.splitext(self.filename)
+        
+        if " - " in self.name:
+            parts = self.name.split(" - ", 1)
+            self.artist = parts[0]
+            self.title = parts[1]
+        else:
+            self.artist = "Unknown Artist"
+            self.title = self.name
+
+        self.setUI(timeBar, timeLeft, timeRight)
+        self.duration = self.getDuration()
+        self.restart()
+
+    def setUI(self, timeBar, timeLeft, timeRight):
+        self.timeBar = timeBar
+        self.timeLeft = timeLeft
+        self.timeRight = timeRight
+
+    def getDuration(self):
+        tempSound = pygame.mixer.Sound(self.path)
+        return tempSound.get_length()
+    
+    def getSeconds(self):
+        return pygame.mixer.music.get_pos() / 1000.0
+    
+    def getRemainingSeconds(self):
+        return max(0, self.duration - self.getSeconds())
+
+    def formatTime(self, seconds):
+        mins = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{mins:02d}:{secs:02d}"
+
+    def getPercentage(self):
+        if self.duration > 0:
+            return self.getSeconds() / self.duration
+        return 0
+
+    def restart(self):
+        pygame.mixer.music.load(str(self.path))
+        pygame.mixer.music.play(loops=0, start=0.0)
+
+    def togglePause(self):
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.pause()
+        else:
+            pygame.mixer.music.unpause()
+
+    def update(self):
+        currentSeconds = self.getSeconds()
+        remainingSeconds = self.getRemainingSeconds()
+        
+        self.timeBar.setProgress(self.getPercentage())
+        self.timeLeft.setText(self.formatTime(currentSeconds))
+        self.timeRight.setText(self.formatTime(remainingSeconds))
