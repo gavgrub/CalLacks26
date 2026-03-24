@@ -37,16 +37,16 @@ class MusicPlayerScreen:
         self.artist = Text("A cool guy", int(UISIZE * 4), UILIGHT, align="left")
         self.artist.build(self.am)
 
-        timeBar = Slider(noteSize, int(UISIZE * 4), UIDARK)
-        timeBar.build()
+        self.timeBar = Slider(noteSize, int(UISIZE * 4), UIDARK, UILIGHT)
+        self.timeBar.build()
 
-        timeLeft = Text("Time 1", int(UISIZE * 3), UILIGHT, align="left")
-        timeLeft.build(self.am)
+        self.timeLeft = Text("Time 1", int(UISIZE * 3), UILIGHT, align="left")
+        self.timeLeft.build(self.am)
         
-        timeRight = Text("Time 2", int(UISIZE * 3), UILIGHT, align="right")
-        timeRight.build(self.am)
+        self.timeRight = Text("Time 2", int(UISIZE * 3), UILIGHT, align="right")
+        self.timeRight.build(self.am)
         
-        soundBar = Slider(int(noteSize * 0.8), int(UISIZE * 4), UIDARK)
+        soundBar = Slider(int(noteSize * 0.8), int(UISIZE * 4), UIDARK, UILIGHT)
         soundBar.build()
 
         muteImg = Image(self.am.image("mute"))
@@ -66,18 +66,18 @@ class MusicPlayerScreen:
         self.artist.x, self.artist.y = x, y
         
         y += UISIZE * 9
-        timeBar.x, timeBar.y = x, y
+        self.timeBar.x, self.timeBar.y = x, y
         
         y += UISIZE * 7
-        timeLeft.x, timeLeft.y = x, y
-        timeRight.x, timeRight.y = x + noteSize, y
+        self.timeLeft.x, self.timeLeft.y = x, y
+        self.timeRight.x, self.timeRight.y = x + noteSize, y
         
         y += UISIZE * 7
         soundBar.x, soundBar.y = (WIDTH / 2 - soundBar.width / 2), y
         muteImg.x, muteImg.y = x, y
         volumeImg.x, volumeImg.y = (x + noteSize - volumeImg.surface.get_width()), y
 
-        self.elements.extend([albumArt, self.title, self.artist, timeBar, timeLeft, timeRight, soundBar, muteImg, volumeImg])
+        self.elements.extend([albumArt, self.title, self.artist, self.timeBar, self.timeLeft, self.timeRight, soundBar, muteImg, volumeImg])
 
     def gradient(self, width, height, color1, color2, angle=45):
         surf = pygame.Surface((width, height))

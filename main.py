@@ -32,16 +32,10 @@ def main():
     
     # Initialize the screen and set it in the manager
     musicScreen = MusicPlayerScreen(am, sm)
-    title = musicScreen.title
-    artist = musicScreen.artist
     sm.setScreen(musicScreen)
 
     # Setup the music manager
-    music = SongHandler(os.path.abspath(songPath))
-
-    # Set the title and artist of the song
-    title.setText(music.title)
-    artist.setText(music.artist)
+    music = SongHandler(os.path.abspath(songPath), musicScreen)
 
     while True:
         clock.tick(sm.fps)
@@ -56,6 +50,10 @@ def main():
 
             sm.handleEvent(event)
 
+        # Update music
+        music.update()
+
+        # Draw to screen
         sm.draw()
 
 if __name__ == "__main__":
