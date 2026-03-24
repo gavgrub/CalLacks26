@@ -25,6 +25,7 @@ class Text(Element):
         font = ui.getFont(self.size)
         self.surface = font.render(self.text, True, self.color)
         self.rect = self.surface.get_rect()
+        self.uiRef = ui
 
     def draw(self, screen):
         rect = self.rect.copy()
@@ -35,6 +36,11 @@ class Text(Element):
             rect.topright = (self.x, self.y)
 
         screen.blit(self.surface, rect)
+
+    def setText(self, newText):
+        if self.text != newText:
+            self.text = newText
+            self.build(self.uiRef)
 
 # Image element
 class Image(Element):
