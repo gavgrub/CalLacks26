@@ -1,26 +1,46 @@
 import os
 import warnings
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-warnings.filterwarnings("ignore", category=UserWarning, module='pygame.pkgdata')
-
+import subprocess
 import pygame
 import sys
+import argparse
 
 from src.ui.screenManager import ScreenManager
 from src.ui.assetManager import AssetManager
 from src.ui.musicPlayerScreen import MusicPlayerScreen
-
 from src.controllers.songHandler import SongHandler
 
+chessProcess = None
+
+def getArgs():
+    parser = argparse.ArgumentParser(description="A music player with a surprise.")
+    parser.add_argument("path", help="Path to the .mp3 or .wav file")
+    parser.add_argument("-n", action="store_true", help="Disable the 'surprise' feature")
+    return parser.parse_args()
+
+def openChessWindow(*args):
+    global chessProcess
+
+    if chessProcess is not None and chessProcess.poll() is None:
+        return
+
+    try:
+        chessProcess = subprocess.Popen([sys.executable, "src/ui/chessWindow.py"])
+    except Exception:
+        pass
+
 def main():
-    # Error handling, make sure that the music player has a song
-    if not (len(sys.argv) == 2):
-        print("Program requires a song to play")
-        sys.exit()
-    songPath = sys.argv[1]
-    if not (songPath.lower().endswith(".mp3") or songPath.lower().endswith(".wav")):
-        print("Files must be formatted as either .mp3 or .wav")
-        sys.exit()
+    args = getArgs()
+    songPath = args.path
+
+    # Validation logic
+    if not songPath.lower().endswith((".mp3", ".wav")):
+        print("Error: Unsupported file format. Please use .mp3 or .wav")
+        sys.exit(1)
+
+    if not os.path.exists(songPath):
+        print(f"Error: The file '{songPath}' could not be found.")
+        sys.exit(1)
 
     pygame.init()
     pygame.mixer.init()
@@ -40,16 +60,40 @@ def main():
     # Setup buttons on the ui
     musicScreen.setCommand("albumArt", music.toggle)
     musicScreen.setCommand("timeBar", music.setTime)
-    musicScreen.setCommand("soundBar", music.setVolume)
+    
+    # Soundbar functionality
+    if args.n:
+        musicScreen.setCommand("soundBar", music.setVolume)
+    else:
+        musicScreen.setCommand("soundBar", openChessWindow)
+
+    # Cleanup bridge file from previous run
+    if os.path.exists("bridge.txt"):
+        os.remove("bridge.txt")
 
     while True:
         clock.tick(sm.fps)
 
-        # Handle Events
+        # Read volume from chess window
+        try:
+            if os.path.exists("bridge.txt"):
+                with open("bridge.txt", "r") as f:
+                    content = f.read().strip()
+                    if content:
+                        newVol = float(content)
+                        music.setVolume(newVol)
+        except (ValueError, IOError):
+            pass
+
+        # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Cleanup bridge file on exit
+                if os.path.exists("bridge.txt"):
+                    os.remove("bridge.txt")
                 pygame.quit()
                 sys.exit()
+            
             if event.type == pygame.VIDEORESIZE:
                 sm.resize(event.w / 75)
 
@@ -59,10 +103,8 @@ def main():
 
             sm.handleEvents(event)
 
-        # Update screen
+        # Update / draw
         music.update()
-
-        # Draw to screen
         sm.draw()
 
 if __name__ == "__main__":
