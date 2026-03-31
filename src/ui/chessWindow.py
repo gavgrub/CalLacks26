@@ -1,3 +1,4 @@
+# This is all AI slop but I want to be done this project
 import pygame
 import sys
 import chess
@@ -43,7 +44,12 @@ def drawBoard(screen, selectedSquare, board):
             pygame.draw.rect(screen, color, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
 def drawPieces(screen, board):
-    font = pygame.font.SysFont("Segoe UI Symbol", 50)
+    # Using a generic font if Segoe UI Symbol isn't available
+    try:
+        font = pygame.font.SysFont("Segoe UI Symbol", 50)
+    except:
+        font = pygame.font.SysFont("Arial", 50)
+        
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
@@ -56,7 +62,6 @@ def drawPieces(screen, board):
 
 def drawUI(screen, evaluation, volume, board):
     """Draws points or CHECKMATE and volume percentage."""
-    # Semi-transparent background for UI bar
     overlay = pygame.Surface((WIDTH, UI_HEIGHT))
     overlay.set_alpha(200)
     overlay.fill(BLACK)
@@ -64,14 +69,15 @@ def drawUI(screen, evaluation, volume, board):
 
     font = pygame.font.SysFont("Arial", 22, bold=True)
     
-    # 1. Logic for Points vs Checkmate
     if board.is_checkmate():
         evalText = "CHECKMATE"
     else:
+        # Convert raw centipawn score to displayable points
         evalText = f"Points: {evaluation/100:+.1f}"
 
-    # 2. Volume percentage
-    volText = f"Volume: {int(volume * 100)}%"
+    # Handle cases where volume might be None
+    displayVol = volume if volume is not None else 0.5
+    volText = f"Volume: {int(displayVol * 100)}%"
 
     evalImg = font.render(evalText, True, WHITE)
     volImg = font.render(volText, True, WHITE)
@@ -79,31 +85,23 @@ def drawUI(screen, evaluation, volume, board):
     screen.blit(evalImg, (20, HEIGHT_OFFSET + 8))
     screen.blit(volImg, (WIDTH - 150, HEIGHT_OFFSET + 8))
 
-def updateBridge(volume):
-    """Writes current volume to the bridge file for main.py."""
-    try:
-        with open("bridge.txt", "w") as f:
-            f.write(str(volume))
-    except IOError:
-        pass
-
 def runChessGame():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, WIDTH + UI_HEIGHT))
     pygame.display.set_caption("Win to increase volume!")
     
+    # Get argument from main.py (VOLUME or TIME)
+    var_type = sys.argv[1] if len(sys.argv) > 1 else "VOLUME"
+    
     # Ensure this path matches your project structure
-    chessGame = ChessHandler("src/engine/stockfish.exe")
+    chessGame = ChessHandler("src/engine/stockfish.exe", var_type)
     clock = pygame.time.Clock()
     
     selectedSquare = None
-    currentVol = 1.0
-    currentEval = 0
-
-    # Initial sync
-    currentVol = chessGame.getVolumeMultiplier()
+    
+    # Initial calculation
+    currentData = chessGame.setData()
     currentEval = chessGame.lastEval
-    updateBridge(currentVol)
 
     while True:
         # --- EVENT HANDLING ---
@@ -114,7 +112,7 @@ def runChessGame():
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.pos[1] < HEIGHT_OFFSET: # Ensure click is on the board
+                if event.pos[1] < HEIGHT_OFFSET: 
                     clickedSquare = getSquareFromMouse(event.pos)
                     
                     if selectedSquare is None:
@@ -122,11 +120,12 @@ def runChessGame():
                         if piece and piece.color == chess.WHITE:
                             selectedSquare = clickedSquare
                     else:
+                        # Attempt to move
                         move = chess.Move(selectedSquare, clickedSquare)
                         
                         # Auto-promotion to Queen
-                        if chessGame.board.piece_at(selectedSquare) and \
-                           chessGame.board.piece_at(selectedSquare).piece_type == chess.PAWN:
+                        piece = chessGame.board.piece_at(selectedSquare)
+                        if piece and piece.piece_type == chess.PAWN:
                             if chess.square_rank(clickedSquare) in [0, 7]:
                                 move.promotion = chess.QUEEN
 
@@ -135,23 +134,22 @@ def runChessGame():
                             chessGame.board.push(move)
                             selectedSquare = None
 
-                            # Force a draw update so AI thinking doesn't freeze the screen
+                            # Visual update before AI thinks
                             screen.fill((20, 0, 0))
                             drawBoard(screen, None, chessGame.board)
                             drawPieces(screen, chessGame.board)
-                            drawUI(screen, currentEval, currentVol, chessGame.board)
+                            drawUI(screen, currentEval, currentData, chessGame.board)
                             pygame.display.flip()
                             
                             if not chessGame.board.is_game_over():
                                 # 2. AI Move
                                 chessGame.makeAiMove()
                                 
-                                # Update Volume once after AI move
-                                currentVol = chessGame.getVolumeMultiplier()
+                                # 3. Update scores and send to main.py
+                                currentData = chessGame.setData() 
                                 currentEval = chessGame.lastEval
-                                updateBridge(currentVol)
                         else:
-                            # Switch selection or deselect
+                            # Selection logic
                             piece = chessGame.board.piece_at(clickedSquare)
                             if piece and piece.color == chess.WHITE:
                                 selectedSquare = clickedSquare
@@ -159,10 +157,10 @@ def runChessGame():
                                 selectedSquare = None
 
         # --- DRAWING ---
-        screen.fill((20, 0, 0)) # Clean background
+        screen.fill((20, 0, 0)) 
         drawBoard(screen, selectedSquare, chessGame.board)
         drawPieces(screen, chessGame.board)
-        drawUI(screen, currentEval, currentVol, chessGame.board)
+        drawUI(screen, currentEval, currentData, chessGame.board)
         
         pygame.display.flip()
         clock.tick(60)

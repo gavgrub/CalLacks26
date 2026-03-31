@@ -42,6 +42,13 @@ class SongHandler:
         # Added the start time offset to the internal mixer position
         return self.currentStartTime + (pygame.mixer.music.get_pos() / 1000.0)
     
+    # Pauses if val > 0.5
+    def setPause(self, val):
+        if (val > 0.5):
+            pygame.mixer.music.pause()
+        else:
+            pygame.mixer.music.unpause()
+    
     # Get number of seconds left
     def getRemainingSeconds(self):
         remaining = self.duration - self.getSeconds()

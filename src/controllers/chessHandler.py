@@ -1,8 +1,9 @@
+import sys
 import chess
 import chess.engine
 
 class ChessHandler:
-    def __init__(self, enginePath):
+    def __init__(self, enginePath, varType):
         try:
             self.engine = chess.engine.SimpleEngine.popen_uci(enginePath)
         except Exception as e:
@@ -10,22 +11,27 @@ class ChessHandler:
 
         self.board = chess.Board()
         self.lastEval = 0
+        self.varType = varType
 
-    def getVolumeMultiplier(self, timeLimit=0.05):
+    def setData(self, timeLimit=0.05):
         try:
             info = self.engine.analyse(self.board, chess.engine.Limit(time=timeLimit))
-            score = info["score"].relative
-            
-            if score.is_mate():
-                rawScore = 1000 if score.mate() > 0 else -1000
+            score_obj = info["score"].relative
+
+            if score_obj.is_mate():
+                rawScore = 1000 if score_obj.mate() > 0 else -1000
             else:
-                rawScore = score.score()
+                rawScore = score_obj.score()
+                if rawScore is None: rawScore = 0
 
             self.lastEval = rawScore
-            volume = (rawScore + 500) / 1000
-            return max(0.0, min(1.0, volume))
+            fixedScore = (rawScore + 500) / 1000
+            finalVal = max(0.0, min(1.0, fixedScore))
+
+            print(f"{self.varType}:{finalVal}", flush=True)
             
-        except chess.engine.EngineTerminatedError:
+            return finalVal
+        except Exception as e:
             return 0.5
 
     def makeAiMove(self, timeLimit=0.1):

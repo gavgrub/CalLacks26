@@ -4,6 +4,8 @@ import subprocess
 import pygame
 import sys
 import argparse
+import threading
+import queue
 
 from src.ui.screenManager import ScreenManager
 from src.ui.assetManager import AssetManager
@@ -11,6 +13,13 @@ from src.ui.musicPlayerScreen import MusicPlayerScreen
 from src.controllers.songHandler import SongHandler
 
 chessProcess = None
+messageQueue = queue.Queue()
+
+def outputReader(proc):
+    """This runs in the background and fills the queue."""
+    for line in iter(proc.stdout.readline, ""):
+        if line:
+            messageQueue.put(line.strip())
 
 def getArgs():
     parser = argparse.ArgumentParser(description="A music player with a surprise.")
@@ -18,16 +27,19 @@ def getArgs():
     parser.add_argument("-n", action="store_true", help="Disable the 'surprise' feature")
     return parser.parse_args()
 
-def openChessWindow(*args):
+def openChessWindow(var_name):
     global chessProcess
-
     if chessProcess is not None and chessProcess.poll() is None:
         return
+    chessProcess = subprocess.Popen(
+        [sys.executable, "src/ui/chessWindow.py", str(var_name)],
+        stdout=subprocess.PIPE,
+        text=True,
+        bufsize=1
+    )
 
-    try:
-        chessProcess = subprocess.Popen([sys.executable, "src/ui/chessWindow.py"])
-    except Exception:
-        pass
+    thread = threading.Thread(target=outputReader, args=(chessProcess,), daemon=True)
+    thread.start()
 
 def main():
     args = getArgs()
@@ -56,16 +68,16 @@ def main():
 
     # Setup the music manager
     music = SongHandler(os.path.abspath(songPath), musicScreen)
-
-    # Setup buttons on the ui
-    musicScreen.setCommand("albumArt", music.toggle)
-    musicScreen.setCommand("timeBar", music.setTime)
     
-    # Soundbar functionality
+    # Setup UI functionality
     if args.n:
         musicScreen.setCommand("soundBar", music.setVolume)
+        musicScreen.setCommand("timeBar", music.setTime)
+        musicScreen.setCommand("albumArt", music.toggle)
     else:
-        musicScreen.setCommand("soundBar", openChessWindow)
+        musicScreen.setCommand("soundBar", lambda p : openChessWindow("VOLUME"))
+        musicScreen.setCommand("timeBar", lambda p : openChessWindow("TIME"))
+        musicScreen.setCommand("albumArt", lambda p : openChessWindow("PAUSE"))
 
     # Cleanup bridge file from previous run
     if os.path.exists("bridge.txt"):
@@ -74,15 +86,21 @@ def main():
     while True:
         clock.tick(sm.fps)
 
-        # Read volume from chess window
+        # Read information
         try:
-            if os.path.exists("bridge.txt"):
-                with open("bridge.txt", "r") as f:
-                    content = f.read().strip()
-                    if content:
-                        newVol = float(content)
-                        music.setVolume(newVol)
-        except (ValueError, IOError):
+            while not messageQueue.empty():
+                msg = messageQueue.get_nowait()
+                if ":" in msg:
+                    prefix, value = msg.split(":", 1)
+                    val = float(value)
+
+                    if prefix == "VOLUME":
+                        music.setVolume(val)
+                    elif prefix == "TIME":
+                        music.setTime(val)
+                    elif prefix == "PAUSE":
+                        music.setPause(val)
+        except (queue.Empty, ValueError):
             pass
 
         # Handle events
