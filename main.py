@@ -79,9 +79,9 @@ def main():
         musicScreen.setCommand("timeBar", music.setTime)
         musicScreen.setCommand("albumArt", music.toggle)
     else:
-        musicScreen.setCommand("soundBar", lambda : openChessWindow("VOLUME"))
-        musicScreen.setCommand("timeBar", lambda : openChessWindow("TIME"))
-        musicScreen.setCommand("albumArt", lambda : openChessWindow("PLAY"))
+        musicScreen.setCommand("soundBar", lambda p=None : openChessWindow("VOLUME"))
+        musicScreen.setCommand("timeBar", lambda p=None : openChessWindow("TIME"))
+        musicScreen.setCommand("albumArt", lambda p=None : openChessWindow("PLAY"))
 
     # Cleanup bridge file from previous run
     if os.path.exists("bridge.txt"):
