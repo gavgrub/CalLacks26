@@ -70,14 +70,13 @@ def main():
     music = SongHandler(os.path.abspath(songPath), musicScreen)
     
     # Setup UI functionality
+    musicScreen.setCommand("albumArt", music.toggle)
     if args.n:
         musicScreen.setCommand("soundBar", music.setVolume)
         musicScreen.setCommand("timeBar", music.setTime)
-        musicScreen.setCommand("albumArt", music.toggle)
     else:
         musicScreen.setCommand("soundBar", lambda p : openChessWindow("VOLUME"))
         musicScreen.setCommand("timeBar", lambda p : openChessWindow("TIME"))
-        musicScreen.setCommand("albumArt", lambda p : openChessWindow("PAUSE"))
 
     # Cleanup bridge file from previous run
     if os.path.exists("bridge.txt"):
