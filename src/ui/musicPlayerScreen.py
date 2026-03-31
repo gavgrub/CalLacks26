@@ -15,7 +15,6 @@ class MusicPlayerScreen:
         self.sm = sm
         self.elements = []
         self.interactiveElements = []
-        # Pre-fill dictionary so setCommand works correctly
         self.commands = {"timeBar": None, "soundBar": None, "albumArt": None}
         self.build()
 
@@ -104,9 +103,16 @@ class MusicPlayerScreen:
                 if isinstance(element, Slider):
                     if element.handleClick(mousePos):
                         break
-                elif element.isClicked(mousePos):
+                elif element.isHovered(mousePos):
                     element.execute()
                     break
+    
+    def handleHover(self):
+        mousePos = pygame.mouse.get_pos()
+        isHovered = False
+        for element in self.interactiveElements:
+            isHovered = isHovered or element.isHovered(mousePos)
+        return isHovered
 
     def draw(self):
         screen = self.sm.screen

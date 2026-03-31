@@ -1,5 +1,9 @@
 import os
 import warnings
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import subprocess
 import pygame
 import sys
@@ -70,13 +74,14 @@ def main():
     music = SongHandler(os.path.abspath(songPath), musicScreen)
     
     # Setup UI functionality
-    musicScreen.setCommand("albumArt", music.toggle)
     if args.n:
         musicScreen.setCommand("soundBar", music.setVolume)
         musicScreen.setCommand("timeBar", music.setTime)
+        musicScreen.setCommand("albumArt", music.toggle)
     else:
-        musicScreen.setCommand("soundBar", lambda p : openChessWindow("VOLUME"))
-        musicScreen.setCommand("timeBar", lambda p : openChessWindow("TIME"))
+        musicScreen.setCommand("soundBar", lambda : openChessWindow("VOLUME"))
+        musicScreen.setCommand("timeBar", lambda : openChessWindow("TIME"))
+        musicScreen.setCommand("albumArt", lambda : openChessWindow("PLAY"))
 
     # Cleanup bridge file from previous run
     if os.path.exists("bridge.txt"):
@@ -97,7 +102,7 @@ def main():
                         music.setVolume(val)
                     elif prefix == "TIME":
                         music.setTime(val)
-                    elif prefix == "PAUSE":
+                    elif prefix == "PLAY":
                         music.setPause(val)
         except (queue.Empty, ValueError):
             pass

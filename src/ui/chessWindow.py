@@ -1,8 +1,13 @@
 # This is all AI slop but I want to be done this project
+import os
+import warnings
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import pygame
 import sys
 import chess
-import os
 
 # --- PATH SETUP ---
 currentDir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +82,10 @@ def drawUI(screen, evaluation, volume, board):
 
     # Handle cases where volume might be None
     displayVol = volume if volume is not None else 0.5
-    volText = f"Volume: {int(displayVol * 100)}%"
+    if not (sys.argv[1] == "PLAY"):
+        volText = f"{sys.argv[1].lower().capitalize()}: {int(displayVol * 100)}%"
+    else:
+        volText = f"{sys.argv[1].lower().capitalize()}: {int(displayVol * 100) > 30}"
 
     evalImg = font.render(evalText, True, WHITE)
     volImg = font.render(volText, True, WHITE)
@@ -88,7 +96,7 @@ def drawUI(screen, evaluation, volume, board):
 def runChessGame():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, WIDTH + UI_HEIGHT))
-    pygame.display.set_caption("Win to increase volume!")
+    pygame.display.set_caption("Play well to affect UI")
     
     # Get argument from main.py (VOLUME or TIME)
     var_type = sys.argv[1] if len(sys.argv) > 1 else "VOLUME"

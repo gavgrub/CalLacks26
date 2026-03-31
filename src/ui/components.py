@@ -13,7 +13,7 @@ class Element:
         if self.action is not None:
             self.action(*args)
 
-    def isClicked(self, mousePos):
+    def isHovered(self, mousePos):
         return self.rect.collidepoint(mousePos)
 
     def draw(self, screen):
@@ -102,7 +102,7 @@ class Slider(Element):
         self.progress = max(0.0, min(1.0, value))
 
     def handleClick(self, mousePos):
-        if self.isClicked(mousePos):
+        if self.isHovered(mousePos):
             relativeX = mousePos[0] - self.x
             newProgress = relativeX / self.width
             self.setProgress(newProgress)
@@ -120,65 +120,3 @@ class Slider(Element):
         if self.fillSurface and self.progress > 0:
             fillWidth = int(self.width * self.progress)
             screen.blit(self.fillSurface, (self.x, self.y), (0, 0, fillWidth, self.height))
-
-# Handles playing music
-class SongHandler:
-    def __init__(self, path, timeBar, timeLeft, timeRight):
-        self.path = path
-        self.filename = os.path.basename(path)
-        self.name, _ = os.path.splitext(self.filename)
-        
-        if " - " in self.name:
-            parts = self.name.split(" - ", 1)
-            self.artist = parts[0]
-            self.title = parts[1]
-        else:
-            self.artist = "Unknown Artist"
-            self.title = self.name
-
-        self.setUI(timeBar, timeLeft, timeRight)
-        self.duration = self.getDuration()
-        self.restart()
-
-    def setUI(self, timeBar, timeLeft, timeRight):
-        self.timeBar = timeBar
-        self.timeLeft = timeLeft
-        self.timeRight = timeRight
-
-    def getDuration(self):
-        tempSound = pygame.mixer.Sound(self.path)
-        return tempSound.get_length()
-    
-    def getSeconds(self):
-        return pygame.mixer.music.get_pos() / 1000.0
-    
-    def getRemainingSeconds(self):
-        return max(0, self.duration - self.getSeconds())
-
-    def formatTime(self, seconds):
-        mins = int(seconds // 60)
-        secs = int(seconds % 60)
-        return f"{mins:02d}:{secs:02d}"
-
-    def getPercentage(self):
-        if self.duration > 0:
-            return self.getSeconds() / self.duration
-        return 0
-
-    def restart(self):
-        pygame.mixer.music.load(str(self.path))
-        pygame.mixer.music.play(loops=0, start=0.0)
-
-    def togglePause(self):
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.pause()
-        else:
-            pygame.mixer.music.unpause()
-
-    def update(self):
-        currentSeconds = self.getSeconds()
-        remainingSeconds = self.getRemainingSeconds()
-        
-        self.timeBar.setProgress(self.getPercentage())
-        self.timeLeft.setText(self.formatTime(currentSeconds))
-        self.timeRight.setText(self.formatTime(remainingSeconds))

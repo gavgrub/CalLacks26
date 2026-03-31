@@ -44,10 +44,10 @@ class SongHandler:
     
     # Pauses if val > 0.5
     def setPause(self, val):
-        if (val > 0.5):
-            pygame.mixer.music.pause()
-        else:
+        if (val > 0.3):
             pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.pause()
     
     # Get number of seconds left
     def getRemainingSeconds(self):
@@ -76,7 +76,7 @@ class SongHandler:
         return pygame.mixer.music.get_volume()
 
     # Toggles the music paused / unpaused
-    def toggle(self, *args): # Added *args so UI calls don't crash
+    def toggle(self, *args):
         if pygame.mixer.music.get_busy():
             pygame.mixer.music.pause()
         else:

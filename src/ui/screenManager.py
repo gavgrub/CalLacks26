@@ -28,6 +28,15 @@ class ScreenManager:
             self.currentScreen.draw()
         pygame.display.flip()
 
+        self.handleHover()
+
     def handleEvents(self, event):
         if self.currentScreen is not None:
             self.currentScreen.handleEvents(event)
+
+    def handleHover(self):
+        if self.currentScreen is not None:
+            if self.currentScreen.handleHover():
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            else:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
