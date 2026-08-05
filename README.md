@@ -37,7 +37,7 @@ python main.py -n "songs/Powerup! - Jeremy Blake.mp3"
 Created by Gavin Grubert
 - Email: grubertgavin@gmail.com
 - GitHub: [https://github.com/gavgrub](https://github.com/gavgrub)
-Chess engine is Stockfish. Find authors under src/engine/AUTHORS
+- Chess engine is Stockfish. Find authors under src/engine/AUTHORS
 ## License
 I have licensed this project under CC BY-NC-SA 4.0, find the details here:
 [https://creativecommons.org/licenses/by-nc-sa/4.0/](https://creativecommons.org/licenses/by-nc-sa/4.0/)
